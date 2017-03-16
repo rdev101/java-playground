@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.sun.istack.internal.NotNull;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -18,6 +19,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
 
@@ -97,6 +99,11 @@ public class Kafka {
         });
     }
 
+
+    public void getItemsFromTopic(List<String> topicNames, Consumer<String,String> consumer){
+
+    }
+
 }
 
 
@@ -125,7 +132,6 @@ class Book {
     @JsonProperty("date")
     private String date;
 
-
     @JsonCreator
     public Book(@JsonProperty("author") String author, @JsonProperty("date") String date) {
         this.author = author;
@@ -145,4 +151,31 @@ class ConfigReader {
 
     @NotNull
     public long timeOut = 5000;
+}
+
+
+class KafkaResponse {
+    private String key;
+    private String data;
+
+    public KafkaResponse(String key, String data) {
+        this.key = key;
+        this.data = data;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
+    }
 }
