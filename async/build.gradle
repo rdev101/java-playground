@@ -6,12 +6,20 @@ apply plugin: 'java'
 sourceCompatibility = 1.8
 
 repositories {
+    maven {
+        url 'http://packages.confluent.io/maven'
+    }
     mavenCentral()
 }
 
 dependencies {
     compile group: 'junit', name: 'junit', version: '4.12'
-    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.0'
+//    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.0'
+//    compile group: 'org.apache.kafka', name: 'kafka_2.10', version: '0.10.2.0'
+//    compile group: 'org.apache.kafka', name: 'kafka_2.10', version: '0.8.2.0'
+    compile group: 'org.apache.kafka', name: 'kafka_2.10', version: '0.9.0.1'
+
+    compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '1.0'
     compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.24'
     compile 'com.fasterxml.jackson.core:jackson-annotations:2.8.7'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.8.7'
