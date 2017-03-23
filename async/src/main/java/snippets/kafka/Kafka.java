@@ -5,12 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.sun.istack.internal.NotNull;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDecoder;
-import kafka.consumer.*;
 import kafka.consumer.ConsumerConfig;
-import kafka.javaapi.consumer.*;
+import kafka.consumer.ConsumerIterator;
+import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import kafka.serializer.StringDecoder;
@@ -18,21 +16,22 @@ import kafka.utils.VerifiableProperties;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import kafka.consumer.Consumer;
-import org.apache.avro.generic.IndexedRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.*;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 
+import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.*;
 
 /**
@@ -66,6 +65,32 @@ public class Kafka {
         zookeeperAddress = configReader.zookeeperAddress;
     }
 
+    public static void main(String args[]) throws IOException {
+        setUp();
+//        new Kafka().runProduceToTopic();
+//        new Kafka().runConsumeFromTopic("test", "test-consumer1");
+//        new Kafka().runConsumeFromTopic("test2", "test2-consumer1");
+
+        // with avro
+
+//        new Thread( () -> {
+//            try {
+//                while(true) {
+//                    new Kafka().runProduceToTopicWithAvro();
+//                    try {
+//                        Thread.sleep(2000);
+//                    }catch (InterruptedException ex){}
+//                }
+//            }catch (Exception e){
+//                logger.error(e,e);
+//            }
+//        }).start();
+//        new Kafka().runConsumeFromTopicWithAvro("test3", "test3-consumer1");
+//
+//         new Kafka().runProduceToTopicWithAvroToVman("mac1");
+
+        new Kafka().runGetFromAvroTopic("test1", "test1-consumer1");
+    }
 
     public void runProduceToTopic() throws JsonProcessingException {
 
@@ -89,7 +114,6 @@ public class Kafka {
         }
 
     }
-
 
     private void sendItemToTopic(String key, String data, String topicName, Producer<String, String> producer, long timeOutInMilliSeconds) {
 
@@ -117,7 +141,7 @@ public class Kafka {
     }
 
     private void sendItemToTopic(String key, GenericRecord data, String topicName, Producer<Object, Object> producer, long timeOutInMilliSeconds) {
-        Future<RecordMetadata> sendFuture = producer.send(new ProducerRecord<Object,Object>(topicName,key,data));
+        Future<RecordMetadata> sendFuture = producer.send(new ProducerRecord<Object, Object>(topicName, key, data));
         CompletableFuture<RecordMetadata> promise = CompletableFuture.supplyAsync(() ->
                 {
                     logger.debug("Sending data to " + topicName
@@ -138,22 +162,6 @@ public class Kafka {
             logger.error(e, e);
             return null;
         });
-    }
-
-
-    public void runConsumeFromTopic(String groupName, String consumerName) {
-        Properties props = new Properties();
-        props.put("bootstrap.servers", serverAddress);
-        props.put("group.id", groupName);
-        props.put("enable.auto.commit", "true");
-        props.put("auto.commit.interval.ms", "100");
-        props.put("session.timeout.ms", "30000");
-        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
-        consumer.subscribe(Arrays.asList(topicName));
-        getItemsFromTopic(consumer,consumerName);
     }
 
 
@@ -239,6 +247,20 @@ public class Kafka {
 //
 //    }
 
+    public void runConsumeFromTopic(String groupName, String consumerName) {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", serverAddress);
+        props.put("group.id", groupName);
+        props.put("enable.auto.commit", "true");
+        props.put("auto.commit.interval.ms", "100");
+        props.put("session.timeout.ms", "30000");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(Arrays.asList(topicName));
+        getItemsFromTopic(consumer, consumerName);
+    }
 
     public void getItemsFromTopic(org.apache.kafka.clients.consumer.Consumer<String, String> consumer, String consumerName) {
         new Thread(() -> {
@@ -260,7 +282,6 @@ public class Kafka {
         }).start();
     }
 
-
     public void runProduceToTopicWithAvro() throws JsonProcessingException {
 
         Properties props = new Properties();
@@ -271,7 +292,7 @@ public class Kafka {
         props.put("linger.ms", 1);
         props.put("buffer.memory", 33554432);
         props.put("timeout.ms", 5000);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,  io.confluent.kafka.serializers.KafkaAvroSerializer.class);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, io.confluent.kafka.serializers.KafkaAvroSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, io.confluent.kafka.serializers.KafkaAvroSerializer.class);
         props.put("schema.registry.url", schemaRegistyAddress);
         String testItemSchema = "{\"type\":\"record\"," +
@@ -289,15 +310,14 @@ public class Kafka {
 //            sendItemToTopic("item2", mapper.writeValueAsString(testkafKfkaItem2), topicName, producer, timeOut);
             GenericRecord avroRecord = new GenericData.Record(schema);
             avroRecord.put("f1", "value1");
-            sendItemToTopic("item1", avroRecord,avroTopicName,producer,timeOut);
+            sendItemToTopic("item1", avroRecord, avroTopicName, producer, timeOut);
 
             avroRecord = new GenericData.Record(schema);
             avroRecord.put("f1", "value2");
-            sendItemToTopic("item2", avroRecord,avroTopicName,producer,timeOut);
+            sendItemToTopic("item2", avroRecord, avroTopicName, producer, timeOut);
         }
 
     }
-
 
     public void runProduceToTopicWithAvroToVman(String machineName) throws JsonProcessingException {
 
@@ -309,10 +329,10 @@ public class Kafka {
         props.put("linger.ms", 1);
         props.put("buffer.memory", 33554432);
         props.put("timeout.ms", 5000);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,  io.confluent.kafka.serializers.KafkaAvroSerializer.class);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, io.confluent.kafka.serializers.KafkaAvroSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, io.confluent.kafka.serializers.KafkaAvroSerializer.class);
         props.put("schema.registry.url", schemaRegistyAddress);
-       String testItemSchema = "{\"type\":\"record\",\"name\":\"OvaDeploymentEvent\",\"fields\":[{\"name\":\"type\",\"type\":{\"type\":\"enum\",\"name\":\"type\",\"symbols\":[\"OVA\"]},\"default\":\"OVA\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"tenant\",\"type\":\"string\"},{\"name\":\"resourcePath\",\"type\":\"string\"},{\"name\":\"networkLabel\",\"type\":\"string\"},{\"name\":\"folderPath\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+        String testItemSchema = "{\"type\":\"record\",\"name\":\"OvaDeploymentEvent\",\"fields\":[{\"name\":\"type\",\"type\":{\"type\":\"enum\",\"name\":\"type\",\"symbols\":[\"OVA\"]},\"default\":\"OVA\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"tenant\",\"type\":\"string\"},{\"name\":\"resourcePath\",\"type\":\"string\"},{\"name\":\"networkLabel\",\"type\":\"string\"},{\"name\":\"folderPath\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
 
         Schema.Parser parser = new Schema.Parser();
         Schema schema = parser.parse(testItemSchema);
@@ -334,16 +354,15 @@ public class Kafka {
 
             avroRecord.put("folderPath", "Testing2");
 
-            sendItemToTopic("key1", avroRecord,avroTopicName,producer,timeOut);
+            sendItemToTopic("key1", avroRecord, avroTopicName, producer, timeOut);
         }
 
     }
 
+    public void runGetFromAvroTopic(String groupId, String threadName) {
 
-    public void runGetFromAvroTopic(String groupId, String threadName){
 
-
-        new Thread(() ->{
+        new Thread(() -> {
             Thread.currentThread().setName(threadName);
 
             Properties props = new Properties();
@@ -407,8 +426,8 @@ public class Kafka {
 //                producer.send(record);
 
                 logger.info("pulled");
-                String key =  messageAndMetadata.key()==null?null:messageAndMetadata.key().toString().trim();
-                String message =messageAndMetadata.message()==null?null:messageAndMetadata.message().toString().trim();
+                String key = messageAndMetadata.key() == null ? null : messageAndMetadata.key().toString().trim();
+                String message = messageAndMetadata.message() == null ? null : messageAndMetadata.message().toString().trim();
                 logger.info("Got item key " + key);
                 logger.info("Got Message " + message);
             }
@@ -417,34 +436,6 @@ public class Kafka {
         }).start();
 
 
-    }
-
-
-    public static void main (String args[]) throws IOException{
-        setUp();
-//        new Kafka().runProduceToTopic();
-//        new Kafka().runConsumeFromTopic("test", "test-consumer1");
-//        new Kafka().runConsumeFromTopic("test2", "test2-consumer1");
-
-        // with avro
-
-//        new Thread( () -> {
-//            try {
-//                while(true) {
-//                    new Kafka().runProduceToTopicWithAvro();
-//                    try {
-//                        Thread.sleep(2000);
-//                    }catch (InterruptedException ex){}
-//                }
-//            }catch (Exception e){
-//                logger.error(e,e);
-//            }
-//        }).start();
-//        new Kafka().runConsumeFromTopicWithAvro("test3", "test3-consumer1");
-//
-//         new Kafka().runProduceToTopicWithAvroToVman("mac1");
-
-        new Kafka().runGetFromAvroTopic("test1", "test1-consumer1");
     }
 
 }

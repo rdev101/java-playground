@@ -5,6 +5,8 @@ apply plugin: 'java'
 
 sourceCompatibility = 1.8
 
+defaultTasks 'clean', 'build'
+
 repositories {
     maven {
         url 'http://packages.confluent.io/maven'
@@ -13,7 +15,9 @@ repositories {
 }
 
 dependencies {
-    compile group: 'junit', name: 'junit', version: '5+'
+    compile group: 'org.hibernate', name: 'hibernate-validator', version: '4.2.0.Final'
+    compile group: 'javax.validation', name: 'validation-api', version: '1.1.0.Final'
+    compile group: 'junit', name: 'junit', version: '4.12'
 //    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.0'
 //    compile group: 'org.apache.kafka', name: 'kafka_2.10', version: '0.10.2.0'
 //    compile group: 'org.apache.kafka', name: 'kafka_2.10', version: '0.8.2.0'
